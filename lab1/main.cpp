@@ -42,42 +42,45 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
 {
     // Students will implement this function
 
-    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
 
     // TODO: Implement this function
     // Create the projection matrix for the given parameters.
     // Then return it.
      
-    Eigen::Matrix4f M_trans;
-    Eigen::Matrix4f M_persp;
-    Eigen::Matrix4f M_ortho;
-    M_persp <<
-        zNear, 0, 0, 0,
-        0, zNear, 0, 0,
-        0, 0, zNear + zFar, -zFar * zNear,
-        0, 0, 1, 0;
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
 
-    float alpha = 0.5 * eye_fov * MY_PI / 180.0f;
-    float yTop = -zNear * std::tan(alpha);
-    float yBottom = -yTop;
-    float xRight = yTop * aspect_ratio;
-    float xLeft = -xRight;
+    // radian = degree * pi / 180
+    float radian = (eye_fov/2) * MY_PI / 180;
+    
+    float t = std::tan(radian) * zNear;
+    float b = -t;
+    float r = aspect_ratio * t;
+    float l = -r;
 
-    M_trans <<
-        1, 0, 0, -(xLeft + xRight) / 2,
-        0, 1, 0, -(yTop + yBottom) / 2,
-        0, 0, 1, -(zNear + zFar) / 2,
-        0, 0, 0, 1;
-    M_ortho <<
-        2 / (xRight - xLeft), 0, 0, 0,
-        0, 2 / (yTop - yBottom), 0, 0,
-        0, 0, 2 / (zNear - zFar), 0,
-        0, 0, 0, 1;
+    // orthographic projection 
+    // 1. translate to origin
+    Eigen::Matrix4f trans;
+    trans << 1, 0, 0, -(r+l)/2,
+            0, 1, 0, -(t+b)/2,
+            0, 0, 1, -(zNear+zFar)/2,
+            0, 0, 0, 1;
+    // 2. scale to [-1, 1]
+    Eigen::Matrix4f ortho;
+    ortho << 2/(r-l), 0, 0, 0,
+            0, 2/(t-b), 0, 0,
+            0, 0, (2/(zNear-zFar)), 0,
+            0, 0, 0, 1;
+    ortho = ortho * trans;
+    
+    // perspective to orthographic projection
+    Eigen::Matrix4f persp;
+    persp << zNear, 0, 0, 0,
+            0, zNear, 0, 0, 
+            0, 0, zNear+zFar, -zNear*zFar,
+            0, 0, 1, 0;
 
-    M_ortho = M_ortho * M_trans;
-    projection = M_ortho * M_persp * projection;
+    projection = ortho * persp;
     return projection;
-
 }
 
 int main(int argc, const char** argv)
