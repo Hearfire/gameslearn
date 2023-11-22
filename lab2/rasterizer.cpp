@@ -59,7 +59,7 @@ static std::tuple<float, float, float> computeBarycentric2D(float x, float y, co
 }
 
 void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf_id col_buffer, Primitive type)
-{
+{//msaa 
     auto& buf = pos_buf[pos_buffer.pos_id];
     auto& ind = ind_buf[ind_buffer.ind_id];
     auto& col = col_buf[col_buffer.col_id];
@@ -126,7 +126,13 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 
     for(int x=min_x;x<max_x;x+=1){
         for(int y=min_y;y<max_y;y+=1){
-            if(insideTriangle(x+0.5,y+0.5,t.v)){
+            float percent=0;
+            if(insideTriangle(x+0.25,y+0.25,t.v))percent+=0.25;
+            if(insideTriangle(x+0.25,y+0.75,t.v))percent+=0.25;
+            if(insideTriangle(x+0.75,y+0.75,t.v))percent+=0.25;
+            if(insideTriangle(x+0.75,y+0.25,t.v))percent+=0.25;
+
+            if(percent>0){
                 //If so, use the following code to get the interpolated z value.
                 auto[alpha, beta, gamma] = computeBarycentric2D(x+0.5, y+0.5, t.v);
                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
@@ -137,11 +143,14 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                 if(z_interpolated<depth_buf[get_index(x,y)]){
                     depth_buf[get_index(x,y)]=z_interpolated;
                     Eigen::Vector3f p={(float)x,(float)y,z_interpolated};                    
-                    set_pixel(p,t.getColor());
+                    set_pixel(p,t.getColor()*percent);
 
                 }
-
             }
+
+            
+
+        
         }
 
     }
