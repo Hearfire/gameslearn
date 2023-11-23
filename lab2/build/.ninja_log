@@ -21,3 +21,6 @@
 2182	2474	1700658872	Rasterizer	da22d3b831ddd330
 1	2211	1700659627	CMakeFiles/Rasterizer.dir/rasterizer.cpp.o	5cfe33af280600a1
 2211	2575	1700659627	Rasterizer	da22d3b831ddd330
+1	4740	1700729278	CMakeFiles/Rasterizer.dir/main.cpp.o	d42e468081328d0c
+1	4819	1700729278	CMakeFiles/Rasterizer.dir/rasterizer.cpp.o	5cfe33af280600a1
+4819	6985	1700729280	Rasterizer	da22d3b831ddd330

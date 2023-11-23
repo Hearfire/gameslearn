@@ -57,9 +57,58 @@ static std::tuple<float, float, float> computeBarycentric2D(float x, float y, co
     float c3 = (x*(v[0].y() - v[1].y()) + (v[1].x() - v[0].x())*y + v[0].x()*v[1].y() - v[1].x()*v[0].y()) / (v[2].x()*(v[0].y() - v[1].y()) + (v[1].x() - v[0].x())*v[2].y() + v[0].x()*v[1].y() - v[1].x()*v[0].y());
     return {c1,c2,c3};
 }
-
+/*
+//msaa 
 void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf_id col_buffer, Primitive type)
-{//msaa 
+{
+    auto& buf = pos_buf[pos_buffer.pos_id];
+    auto& ind = ind_buf[ind_buffer.ind_id];
+    auto& col = col_buf[col_buffer.col_id];
+
+    float f1 = (50 - 0.1) / 2.0;
+    float f2 = (50 + 0.1) / 2.0;
+
+    Eigen::Matrix4f mvp = projection * view * model;
+    for (auto& i : ind)
+    {
+        Triangle t;
+        Eigen::Vector4f v[] = {
+                mvp * to_vec4(buf[i[0]], 1.0f),
+                mvp * to_vec4(buf[i[1]], 1.0f),
+                mvp * to_vec4(buf[i[2]], 1.0f)
+        };
+        //Homogeneous division
+        for (auto& vec : v) {
+            vec /= vec.w();
+        }
+        //Viewport transformation
+        for (auto & vert : v)
+        {
+            vert.x() = 0.5*width*(vert.x()+1.0);
+            vert.y() = 0.5*height*(vert.y()+1.0);
+            vert.z() = vert.z() * f1 + f2;
+        }
+
+        for (int i = 0; i < 3; ++i)
+        {
+            t.setVertex(i, v[i].head<3>());
+            t.setVertex(i, v[i].head<3>());
+            t.setVertex(i, v[i].head<3>());
+        }
+
+        auto col_x = col[i[0]];
+        auto col_y = col[i[1]];
+        auto col_z = col[i[2]];
+
+        t.setColor(0, col_x[0], col_x[1], col_x[2]);
+        t.setColor(1, col_y[0], col_y[1], col_y[2]);
+        t.setColor(2, col_z[0], col_z[1], col_z[2]);
+
+        rasterize_triangle(t);
+    }
+}*/
+void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf_id col_buffer, Primitive type)
+{//ssaa 
     auto& buf = pos_buf[pos_buffer.pos_id];
     auto& ind = ind_buf[ind_buffer.ind_id];
     auto& col = col_buf[col_buffer.col_id];
@@ -106,7 +155,6 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         rasterize_triangle(t);
     }
 }
-
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     auto v = t.toVector4();
@@ -126,13 +174,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 
     for(int x=min_x;x<max_x;x+=1){
         for(int y=min_y;y<max_y;y+=1){
-            float percent=0;
-            if(insideTriangle(x+0.25,y+0.25,t.v))percent+=0.25;
-            if(insideTriangle(x+0.25,y+0.75,t.v))percent+=0.25;
-            if(insideTriangle(x+0.75,y+0.75,t.v))percent+=0.25;
-            if(insideTriangle(x+0.75,y+0.25,t.v))percent+=0.25;
-
-            if(percent>0){
+            if(insideTriangle(x+0.5,y+0.5,t.v)){
                 //If so, use the following code to get the interpolated z value.
                 auto[alpha, beta, gamma] = computeBarycentric2D(x+0.5, y+0.5, t.v);
                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
@@ -143,19 +185,12 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                 if(z_interpolated<depth_buf[get_index(x,y)]){
                     depth_buf[get_index(x,y)]=z_interpolated;
                     Eigen::Vector3f p={(float)x,(float)y,z_interpolated};                    
-                    set_pixel(p,t.getColor()*percent);
+                    set_pixel(p,t.getColor());
 
                 }
-            }
-
-            
-
-        
+            }         
         }
-
     }
-
-
  
 }
 
