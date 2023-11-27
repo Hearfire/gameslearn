@@ -318,8 +318,8 @@ Eigen::Vector3f bump_fragment_shader(const fragment_shader_payload& payload)
     float h=payload.texture->height;
 
     //in getColor(),u_img = u * width;so we pass 1/w
-    float du=kh*kn*(payload.texture->getColor(u+1.0f/w,v).norm()-payload.texture->getColor(u,v).norm());
-    float dv=kh*kn*(payload.texture->getColor(u,v+1.0f/h).norm()-payload.texture->getColor(u,v).norm());
+    float du=kh*kn*(payload.texture->getColor(u+1/w,v).norm()-payload.texture->getColor(u,v).norm());
+    float dv=kh*kn*(payload.texture->getColor(u,v+1/h).norm()-payload.texture->getColor(u,v).norm());
 
     Vector3f ln={-du,-dv,1.f};
     Vector3f n=(TBN*ln).normalized();

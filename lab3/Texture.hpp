@@ -26,6 +26,8 @@ public:
     {
         auto u_img = u * width;
         auto v_img = (1 - v) * height;
+        if(u_img>image_data.cols||v_img>image_data.rows||u_img<0||v_img<0)return Eigen::Vector3f(0, 0, 0);
+
         auto color = image_data.at<cv::Vec3b>(v_img, u_img);
         return Eigen::Vector3f(color[0], color[1], color[2]);
     }
