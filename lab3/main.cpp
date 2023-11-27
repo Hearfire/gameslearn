@@ -256,6 +256,29 @@ Eigen::Vector3f displacement_fragment_shader(const fragment_shader_payload& payl
     // Vector ln = (-dU, -dV, 1)
     // Position p = p + kn * n * h(u,v)
     // Normal n = normalize(TBN * ln)
+    float x=normal.x(),y=normal.y(),z=normal.z();
+    Vector3f t = {x*y/sqrt(x*x+z*z),sqrt(x*x+z*z),z*y/sqrt(x*x+z*z)};
+    Vector3f b=normal.cross(t);
+    Matrix3f TBN;
+    TBN<<
+        t.x(),b.x(),x,
+        t.y(),b.y(),y,
+        t.z(),b.z(),z;
+
+    float u=payload.tex_coords.x();
+    float v=payload.tex_coords.y();
+    float w=payload.texture->width;
+    float h=payload.texture->height;
+
+    //in getColor(),u_img = u * width;so we pass 1/w
+    float du=kh*kn*(payload.texture->getColor(u+1/w,v).norm()-payload.texture->getColor(u,v).norm());
+    float dv=kh*kn*(payload.texture->getColor(u,v+1/h).norm()-payload.texture->getColor(u,v).norm());
+
+    Vector3f ln={-du,-dv,1.f};
+    Vector3f n=(TBN*ln).normalized();
+
+    point=point+kn*n*payload.texture->getColor(u,v).norm();
+
 
 
     Eigen::Vector3f result_color = {0, 0, 0};
@@ -264,6 +287,25 @@ Eigen::Vector3f displacement_fragment_shader(const fragment_shader_payload& payl
     {
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
         // components are. Then, accumulate that result on the *result_color* object.
+        Vector3f l=(light.position-point);
+        float r2=l.dot(l);
+        l=l.normalized();
+
+        Vector3f v=(eye_pos-point).normalized();
+        Vector3f h=(l+v).normalized();
+
+
+
+        float ndotl=normal.normalized().dot(l);
+        float ndoth=normal.normalized().dot(h);
+
+
+        Vector3f ambient=ka.cwiseProduct(amb_light_intensity);
+        Vector3f diffuse=(kd.cwiseProduct(light.intensity/r2))*std::max(0.f,ndoth);
+        Vector3f specular=ks.cwiseProduct(light.intensity/r2)*pow(std::max(0.0f,ndoth),p);
+        //Vector3f specular=ks.cwiseProduct(light.intensity/r2)*std::max(0.f,pow(ndoth,p));
+
+        result_color=result_color+ambient+diffuse+specular;
 
 
     }
@@ -367,7 +409,7 @@ int main(int argc, const char** argv)
     std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = phong_fragment_shader;
     //active_shader=normal_fragment_shader;
     //active_shader=texture_fragment_shader;
-    active_shader=bump_fragment_shader;
+    active_shader=displacement_fragment_shader;
 
     if (argc >= 2)
     {
