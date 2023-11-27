@@ -297,17 +297,36 @@ Eigen::Vector3f bump_fragment_shader(const fragment_shader_payload& payload)
 
     // TODO: Implement bump mapping here
     // Let n = normal = (x, y, z)
-    // Vector t = (x*y/sqrt(x*x+z*z),sqrt(x*x+z*z),z*y/sqrt(x*x+z*z))
     // Vector b = n cross product t
     // Matrix TBN = [t b n]
     // dU = kh * kn * (h(u+1/w,v)-h(u,v))
     // dV = kh * kn * (h(u,v+1/h)-h(u,v))
     // Vector ln = (-dU, -dV, 1)
     // Normal n = normalize(TBN * ln)
+    float x=normal.x(),y=normal.y(),z=normal.z();
+    Vector3f t = {x*y/sqrt(x*x+z*z),sqrt(x*x+z*z),z*y/sqrt(x*x+z*z)};
+    Vector3f b=normal.cross(t);
+    Matrix3f TBN;
+    TBN<<
+        t.x(),b.x(),x,
+        t.y(),b.y(),y,
+        t.z(),b.z(),z;
+
+    float u=payload.tex_coords.x();
+    float v=payload.tex_coords.y();
+    float w=payload.texture->width;
+    float h=payload.texture->height;
+
+    //in getColor(),u_img = u * width;so we pass 1/w
+    float du=kh*kn*(payload.texture->getColor(u+1.0f/w,v).norm()-payload.texture->getColor(u,v).norm());
+    float dv=kh*kn*(payload.texture->getColor(u,v+1.0f/h).norm()-payload.texture->getColor(u,v).norm());
+
+    Vector3f ln={-du,-dv,1.f};
+    Vector3f n=(TBN*ln).normalized();
 
 
     Eigen::Vector3f result_color = {0, 0, 0};
-    result_color = normal;
+    result_color = n;
 
     return result_color * 255.f;
 }
@@ -342,7 +361,7 @@ int main(int argc, const char** argv)
 
     rst::rasterizer r(700, 700);
 
-    auto texture_path = "spot_texture.png";
+    auto texture_path = "hmap.jpg";
     r.set_texture(Texture(obj_path + texture_path));
 
     std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = phong_fragment_shader;
