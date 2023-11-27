@@ -117,6 +117,7 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload& payload)
     if (payload.texture)
     {
         // TODO: Get the texture value at the texture coordinates of the current fragment
+        return_color=payload.texture->getColor(payload.tex_coords.x(),payload.tex_coords.y());
 
     }
     Eigen::Vector3f texture_color;
@@ -145,6 +146,25 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload& payload)
     {
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
         // components are. Then, accumulate that result on the *result_color* object.
+        Vector3f l=(light.position-point);
+        float r2=l.dot(l);
+        l=l.normalized();
+
+        Vector3f v=(eye_pos-point).normalized();
+        Vector3f h=(l+v).normalized();
+
+
+
+        float ndotl=normal.normalized().dot(l);
+        float ndoth=normal.normalized().dot(h);
+
+
+        Vector3f ambient=ka.cwiseProduct(amb_light_intensity);
+        Vector3f diffuse=(kd.cwiseProduct(light.intensity/r2))*std::max(0.f,ndoth);
+        Vector3f specular=ks.cwiseProduct(light.intensity/r2)*pow(std::max(0.0f,ndoth),p);
+        //Vector3f specular=ks.cwiseProduct(light.intensity/r2)*std::max(0.f,pow(ndoth,p));
+
+        result_color=result_color+ambient+diffuse+specular;
 
     }
 
@@ -175,6 +195,27 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload& payload)
     {
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
         // components are. Then, accumulate that result on the *result_color* object.
+        Vector3f l=(light.position-point);
+        float r2=l.dot(l);
+        l=l.normalized();
+
+        Vector3f v=(eye_pos-point).normalized();
+        Vector3f h=(l+v).normalized();
+
+
+
+        float ndotl=normal.normalized().dot(l);
+        float ndoth=normal.normalized().dot(h);
+
+
+        Vector3f ambient=ka.cwiseProduct(amb_light_intensity);
+        Vector3f diffuse=(kd.cwiseProduct(light.intensity/r2))*std::max(0.f,ndoth);
+        Vector3f specular=ks.cwiseProduct(light.intensity/r2)*pow(std::max(0.0f,ndoth),p);
+        //Vector3f specular=ks.cwiseProduct(light.intensity/r2)*std::max(0.f,pow(ndoth,p));
+
+        result_color=result_color+ambient+diffuse+specular;
+
+        
         
     }
 
@@ -301,11 +342,13 @@ int main(int argc, const char** argv)
 
     rst::rasterizer r(700, 700);
 
-    auto texture_path = "hmap.jpg";
+    auto texture_path = "spot_texture.png";
     r.set_texture(Texture(obj_path + texture_path));
 
     std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = phong_fragment_shader;
-    active_shader=normal_fragment_shader;
+    //active_shader=normal_fragment_shader;
+    //active_shader=texture_fragment_shader;
+    active_shader=bump_fragment_shader;
 
     if (argc >= 2)
     {
