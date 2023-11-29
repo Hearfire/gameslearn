@@ -57,6 +57,16 @@ void bezier(const std::vector<cv::Point2f> &control_points, cv::Mat &window)
     for(double t = 0.0; t <= 1.0; t += 0.001){
         cv::Point2f point=recursive_bezier(control_points,t);
         window.at<cv::Vec3b>(point.y, point.x)[1] = 255;
+        float center_x=round(point.x),center_y=round(point.y);
+        float pixel_bias[5]={-0.5,0.5,0.5,-0.5,-0.5};
+
+        float mindist=pow(center_x-point.x,2)+pow(center_y-point.y,2);
+        for(int i=0;i<4;++i){
+            float nowx=center_x+pixel_bias[i],nowy=center_y+pixel_bias[i+1];
+            float weight=mindist/((nowx-point.x,2)+pow(nowy-point.y,2));
+            window.at<cv::Vec3b>(nowy, nowx)[1] = std::max(255*weight,(float)window.at<cv::Vec3b>(nowy, nowx)[1]);
+        }
+
     }
 
 }
@@ -79,7 +89,7 @@ int main()
 
         if (control_points.size() == 4) 
         {
-            //naive_bezier(control_points, window);
+            // naive_bezier(control_points, window);
             bezier(control_points, window);
 
             cv::imshow("Bezier Curve", window);
