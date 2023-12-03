@@ -1,0 +1,1 @@
+/usr/bin/x86_64-linux-gnu-g++-7  -g   CMakeFiles/RayTracing.dir/main.cpp.o CMakeFiles/RayTracing.dir/Scene.cpp.o CMakeFiles/RayTracing.dir/Renderer.cpp.o  -o RayTracing -fsanitize=undefined 
