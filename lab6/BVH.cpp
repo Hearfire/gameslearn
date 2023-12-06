@@ -27,6 +27,8 @@ BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode,
 
 BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
 {
+
+
     BVHBuildNode* node = new BVHBuildNode();
 
     // Compute bounds of all primitives in BVH node
@@ -74,20 +76,66 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
             });
             break;
         }
+        bool SAH=true;
+        if(SAH){
 
-        auto beginning = objects.begin();
-        auto middling = objects.begin() + (objects.size() / 2);
-        auto ending = objects.end();
+            auto beginning = objects.begin();
+            auto ending = objects.end();              
 
-        auto leftshapes = std::vector<Object*>(beginning, middling);
-        auto rightshapes = std::vector<Object*>(middling, ending);
+            int n=objects.size();
+            double mincost=MAXFLOAT;
+            int mincosti=1;
+            for(int i=1;i<n-1;++i){
+                auto middling=objects.begin()+i;
 
-        assert(objects.size() == (leftshapes.size() + rightshapes.size()));
+                auto leftshapes = std::vector<Object*>(beginning, middling);
+                auto rightshapes = std::vector<Object*>(middling, ending);
+                assert(objects.size() == (leftshapes.size() + rightshapes.size()));
 
-        node->left = recursiveBuild(leftshapes);
-        node->right = recursiveBuild(rightshapes);
+                int a=i,b=n-i;
+                Bounds3 lbound,rbound;
+                for(int k=0;k<leftshapes.size();++k){
+                    lbound=Union(lbound,leftshapes[k]->getBounds().Centroid());
+                }
+                for(int k=0;k<rightshapes.size();++k){
+                    rbound=Union(rbound,rightshapes[k]->getBounds().Centroid());
+                }
+                double Sa=lbound.SurfaceArea(),Sb=rbound.SurfaceArea();
+                double S=bounds.SurfaceArea();
 
-        node->bounds = Union(node->left->bounds, node->right->bounds);
+                double cost=Sa/S*a+Sb/S*b+0.125;
+                if(cost<mincost){
+                    mincost=cost;
+                    mincosti=i;
+                }
+            }
+          
+
+            auto middling=objects.begin()+mincosti;
+            auto leftshapes = std::vector<Object*>(beginning, middling);
+            auto rightshapes = std::vector<Object*>(middling, ending);
+
+            node->left = recursiveBuild(leftshapes);
+            node->right = recursiveBuild(rightshapes);
+
+            node->bounds = Union(node->left->bounds, node->right->bounds);
+
+        }else{
+            auto beginning = objects.begin();
+            auto middling = objects.begin() + (objects.size() / 2);
+            auto ending = objects.end();
+
+            auto leftshapes = std::vector<Object*>(beginning, middling);
+            auto rightshapes = std::vector<Object*>(middling, ending);
+
+            assert(objects.size() == (leftshapes.size() + rightshapes.size()));
+
+            node->left = recursiveBuild(leftshapes);
+            node->right = recursiveBuild(rightshapes);
+
+            node->bounds = Union(node->left->bounds, node->right->bounds);
+        }
+        
     }
 
     return node;
