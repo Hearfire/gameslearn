@@ -48,12 +48,12 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
         node->bounds = Union(node->left->bounds, node->right->bounds);
         return node;
     }
-    else {
+    else {//
         Bounds3 centroidBounds;
         for (int i = 0; i < objects.size(); ++i)
             centroidBounds =
                 Union(centroidBounds, objects[i]->getBounds().Centroid());
-        int dim = centroidBounds.maxExtent();
+        int dim = centroidBounds.maxExtent();//find the max axis
         switch (dim) {
         case 0:
             std::sort(objects.begin(), objects.end(), [](auto f1, auto f2) {
@@ -104,6 +104,18 @@ Intersection BVHAccel::Intersect(const Ray& ray) const
 
 Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
 {
+    
     // TODO Traverse the BVH to find intersection
+    std::array<int,3>dirIsNeg={(int)(ray.direction.x>0),(int)(ray.direction.y>0),(int)(ray.direction.z>0)};
+    if(!node->bounds.IntersectP(ray,ray.direction_inv,dirIsNeg)){
+        Intersection isect;
+        return isect;
+    }
+    if((!node->left)&&(!node->right))return node->object->getIntersection(ray);
+    Intersection l=getIntersection(node->left,ray);
+    Intersection r=getIntersection(node->right,ray);
+
+    return l.distance<r.distance?l:r;
+
 
 }
